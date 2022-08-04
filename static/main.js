@@ -24,8 +24,11 @@ function createNewGame() {
         game.getGameMap().setOccupiedCells(prevGameMap.occupiedCells);
         game.getGameMap().buildGameMapFromLocalStorage();
 
-        let modeElemHTML = document.getElementById('game-mode');
-        modeElemHTML.value = mode;
+        let selectModeElemHTML = document.getElementById('game-mode');
+        selectModeElemHTML.value = mode;
+
+        let selectSizeElemHTML = document.getElementById('game-area');
+        selectSizeElemHTML.value = size;
 
     } else {
         let select = document.getElementById("game-area");
