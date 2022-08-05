@@ -12,7 +12,7 @@ class ComputerPlayer extends Player {
             document.getElementById(idHTML).innerHTML = `<img src="./images/${gameMark.circle}.png" alt="${gameMark.circle}">`;
             allCells[id].setCellOccupied();
             allCells[id].setCellOccupiedByElement(gameMark.circle);
-            isGameOver();
+            game.isGameOver();
         }
     }
 
