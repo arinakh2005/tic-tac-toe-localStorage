@@ -1,64 +1,84 @@
 'use strict'
 let game;
 
-function createNewGame() {
-    //window.localStorage.setItem('wasPrevGame', JSON.stringify(false));
-    let wasPrevGame = JSON.parse(window.localStorage.getItem('wasPrevGame'));
+function resumeGameFromLocalStorage() {
     let size = JSON.parse(window.localStorage.getItem('prevSize'));
     let mode = JSON.parse(window.localStorage.getItem('gameMode'));
+    let numberOfCellsForWin = JSON.parse(window.localStorage.getItem('numberOfCellsForWin'));
+    let prevGame = JSON.parse(window.localStorage.getItem('game'));
+    let prevGameMap = JSON.parse(window.localStorage.getItem('gameMap'));
 
+    game.setGameMap(size, numberOfCellsForWin);
+    game.setMode(prevGame.mode);
+    game.setFirstPlayer(prevGame.firstPlayer.playerType);
+    game.setSecondPlayer(prevGame.secondPlayer.playerType);
+    game.setPlayerWhoMadeLastStep(prevGame.playerWhoMadeLastStep.playerType);
+
+    game.getGameMap().setAllCells(prevGameMap.allCells);
+    game.getGameMap().setOccupiedCells(prevGameMap.occupiedCells);
+    game.getGameMap().buildGameMap(1);
+
+    let selectModeElemHTML = document.getElementById('game-mode');
+    selectModeElemHTML.value = mode;
+
+    let selectSizeElemHTML = document.getElementById('game-area');
+    selectSizeElemHTML.value = size;
+
+    let selectNumberOfCellsForWinElemHTML = document.getElementById('number-of-cells-for-win');
+    selectNumberOfCellsForWinElemHTML.value = numberOfCellsForWin;
+
+    let labelWhoMakeNextStep = document.getElementById('player-number');
+    let nextPlayer;
+    if (game.getMode() === gameMode.playerWithPlayer){
+        if (game.getPlayerWhoMadeLastStep().getPlayerType() === game.getFirstPlayer().getPlayerType()) {
+            nextPlayer = game.getSecondPlayer().getPlayerType();
+        } else {
+            nextPlayer = game.getFirstPlayer().getPlayerType();
+        }
+        labelWhoMakeNextStep.innerText = `Хід: гравець ${nextPlayer}`;
+    } else {
+        labelWhoMakeNextStep.innerText = 'Хід: ... ';
+    }
+}
+
+function createNewGame() {
+    let haveUnfinishedGame = JSON.parse(window.localStorage.getItem('haveUnfinishedGame'));
     game = new Game();
 
-    if (wasPrevGame) {
-        let prevGame = JSON.parse(window.localStorage.getItem('game'));
-        let prevGameMap = JSON.parse(window.localStorage.getItem('gameMap'));
-
-        game.setGameMap(size);
-        game.setMode(prevGame.mode);
-        game.setFirstPlayer(prevGame.firstPlayer);
-        game.setSecondPlayer(prevGame.secondPlayer);
-        game.setPlayerWhoMadeLastStep(prevGame.secondPlayer);
-
-        //game.getGameMap().setCurrentCell(prevGameMap.currentCell);
-        game.getGameMap().setAllCells(prevGameMap.allCells);
-        game.getGameMap().setOccupiedCells(prevGameMap.occupiedCells);
-        game.getGameMap().buildGameMapFromLocalStorage();
-
-        let selectModeElemHTML = document.getElementById('game-mode');
-        selectModeElemHTML.value = mode;
-
-        let selectSizeElemHTML = document.getElementById('game-area');
-        selectSizeElemHTML.value = size;
-
+    if (haveUnfinishedGame) {
+        let continueUnfinishedGame = confirm(`У Вас є незавершена гра. Продовжити грати?`);
+        if (continueUnfinishedGame) {
+            resumeGameFromLocalStorage();
+        } else {
+            window.localStorage.clear();
+            createNewGame();
+        }
     } else {
         let select = document.getElementById("game-area");
         const size = +(select.value);
 
-        if (size < 3) {
-            select.value = 3;
-            alert('Мінімальний розмір поля 3х3!');
-        } else if (size > 100) {
-            select.value = 100;
-            alert('Максимальний розмір поля 100х100!');
-        }
+        select = document.getElementById("number-of-cells-for-win");
+        const numberOfCellsForWin = +(select.value);
+        game.setGameMap(size, numberOfCellsForWin);
 
         select = document.getElementById("game-mode");
         game.setMode(+(select.value));
-        game.setGameMap(size);
-        game.getGameMap().buildGameMap();
+
+        game.getGameMap().buildGameMap(0);
+
+        if (game.getMode() === gameMode.playerWithPlayer) {
+            game.setFirstPlayer(playerType.player1);
+            game.setSecondPlayer(playerType.player2);
+            game.setPlayerWhoMadeLastStep(playerType.player2);
+        } else if (game.getMode() === gameMode.playerWithComputer) {
+            game.setFirstPlayer(playerType.player);
+            game.setSecondPlayer(playerType.computer)
+            game.setPlayerWhoMadeLastStep(playerType.computer);
+        }
     }
 
-    document.getElementById('btn-start').setAttribute('disabled', 'true');
-
-    if (game.getMode() === 0) {
-        game.setFirstPlayer(1);
-        game.setSecondPlayer(2);
-        game.setPlayerWhoMadeLastStep(2);
-    } else if (game.getMode() === 1) {
-        game.setFirstPlayer(3);
-        game.setSecondPlayer(0)
-        game.setPlayerWhoMadeLastStep(0);
-    }
+    let buttonStart = document.getElementById('btn-start');
+    buttonStart.setAttribute('disabled', 'true');
     let buttonClear = document.getElementById('btn-clear');
     buttonClear.removeAttribute('disabled')
 }
@@ -67,14 +87,38 @@ function doStep(id) {
     if (game.getGameMap().isCellAvailableForStep(id)) {
         return;
     }
-    if (game.getMode() === 0) {
+    if (game.getMode() === gameMode.playerWithPlayer) {
         document.getElementById('player-number').innerText = `Хід: гравець ${game.getPlayerWhoMadeLastStep().getPlayerType()}`;
         game.doStepInModePlayerWithPlayer(id);
         isGameOver();
-    } else if (game.getMode() === 1) {
+    } else if (game.getMode() === gameMode.playerWithComputer) {
         game.doStepInModePlayerWithComputer(id);
     }
+    putOnLocalStorage();
+}
 
+function isGameOver() {
+    let isGameOver = false;
+    if (game.getGameMap().isPlayerWon() === game.getGameMap().getNobodyWonFlag()) {
+        setTimeout(function() { game.getDrawMessage(); }, 200);
+        setTimeout(restartGame, 500);
+        isGameOver = true;
+    } else if (game.getGameMap().isPlayerWon()) {
+        setTimeout(function () {
+            game.getWinnerMessage();
+        }, 200);
+        setTimeout(restartGame, 500);
+        isGameOver = true;
+    }
+    return isGameOver;
+}
+
+function restartGame() {
+    if(game) game.getGameMap().clearGameMap();
+    createNewGame();
+}
+
+function putOnLocalStorage() {
     window.localStorage.clear();
 
     const savedGameMap = {
@@ -83,7 +127,8 @@ function doStep(id) {
         'occupiedCells': game.getGameMap().getOccupiedCells(),
         'numberOfCellsToWin': game.getGameMap().getNumberOfCellsToWin(),
         'nobodyWonFlag': game.getGameMap().getNobodyWonFlag(),
-        'size': game.getGameMap().size
+        'size': game.getGameMap().size,
+        'numberOfCellsForWin': game.getGameMap().getNumberOfCellsToWin()
     };
 
     const savedGame = {
@@ -98,29 +143,10 @@ function doStep(id) {
     window.localStorage.setItem('game', JSON.stringify(savedGame));
     window.localStorage.setItem('gameMap', JSON.stringify(savedGameMap));
     window.localStorage.setItem('prevSize', JSON.stringify(savedGameMap.size));
+    window.localStorage.setItem('numberOfCellsForWin', JSON.stringify(savedGameMap.numberOfCellsForWin));
     window.localStorage.setItem('gameMode', JSON.stringify(savedGame.mode));
-    window.localStorage.setItem('wasPrevGame', JSON.stringify(true));
+    window.localStorage.setItem('haveUnfinishedGame', JSON.stringify(true));
 }
-
-function isGameOver() {
-    if (game.getGameMap().isPlayerWon() === game.getGameMap().getNobodyWonFlag()) {
-        setTimeout(function() { game.getDrawMessage(); }, 200);
-        setTimeout(restartGame, 500);
-        return true;
-    } else if (game.getGameMap().isPlayerWon()) {
-        setTimeout(function() { game.getWinnerMessage(); }, 200);
-        setTimeout(restartGame, 500);
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function restartGame() {
-    if(game) game.getGameMap().clearGameMap();
-    createNewGame();
-}
-
 
 
 

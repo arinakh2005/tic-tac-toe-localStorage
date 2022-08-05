@@ -1,8 +1,3 @@
-const gameMark = {
-    cross: 'cross',
-    circle: 'circle'
-}
-
 class Game {
     #mode;
     #gameMap;
@@ -14,8 +9,8 @@ class Game {
         this.lastRole = gameMark.circle;
     }
 
-    setGameMap(value) {
-        this.#gameMap = new GameMap(value);
+    setGameMap(valueSize, valueNumberOfCellsForWin) {
+        this.#gameMap = new GameMap(valueSize, valueNumberOfCellsForWin);
     }
 
     getGameMap() {
@@ -64,46 +59,37 @@ class Game {
         let i = +(id.slice(4, 6));
         this.getGameMap().getAllCells()[i].setCellOccupied();
 
-        if (this.lastRole === gameMark.cross) {
-            this.lastRole = gameMark.circle;
-            cell.innerHTML = `<img src="./${gameMark.circle}.png" alt="${gameMark.circle}">`;
+        if (this.#playerWhoMadeLastStep.getPlayerType() === game.#firstPlayer.getPlayerType()) {
+            cell.innerHTML = `<img src="./images/${gameMark.circle}.png" alt="${gameMark.circle}">`;
             this.getGameMap().getAllCells()[i].setCellOccupiedByElement(gameMark.circle);
             this.#playerWhoMadeLastStep = this.#secondPlayer;
-            return;
-        }
-
-        if (this.lastRole === gameMark.circle) {
+        } else {
             this.lastRole = gameMark.cross;
-            cell.innerHTML = `<img src="./${gameMark.cross}.png" alt="${gameMark.cross}">`;
+            cell.innerHTML = `<img src="./images/${gameMark.cross}.png" alt="${gameMark.cross}">`;
             this.getGameMap().getAllCells()[i].setCellOccupiedByElement(gameMark.cross);
             this.#playerWhoMadeLastStep = this.#firstPlayer;
-            return;
         }
     }
 
     doStepInModePlayerWithComputer(id) {
-        if (this.lastRole === gameMark.circle) {
+        if (this.#playerWhoMadeLastStep.getPlayerType() === game.#secondPlayer.getPlayerType()) {
             let elem = document.getElementById(id);
-            elem.innerHTML = `<img src="./${gameMark.cross}.png" alt="${gameMark.cross}">`;
+            elem.innerHTML = `<img src="./images/${gameMark.cross}.png" alt="${gameMark.cross}">`;
             let i = +(id.slice(4, 6));
             this.#gameMap.getAllCells()[i].setCellOccupied();
             this.#gameMap.getAllCells()[i].setCellOccupiedByElement(gameMark.cross);
-            this.#playerWhoMadeLastStep = this.#secondPlayer;
-        }
-        if (isGameOver()){
-            return;
-        } else if (!isGameOver()) {
-            let temp = this;
-            setTimeout(function() {
-                temp.getSecondPlayer().doComputerStep(temp.getGameMap().getAllCells());
-            }, 300);
             this.#playerWhoMadeLastStep = this.#firstPlayer;
+        }
+
+        if (!isGameOver()) {
+            this.#playerWhoMadeLastStep = this.#secondPlayer;
+            this.getSecondPlayer().doComputerStep(this.getGameMap().getAllCells());
         }
     }
 
     getWinnerMessage() {
-        if (this.#mode === 1) {
-            if (this.#playerWhoMadeLastStep.getPlayerType() === 3) {
+        if (this.#mode === gameMode.playerWithComputer) {
+            if (this.#playerWhoMadeLastStep.getPlayerType() === playerType.computer) {
                 alert("Переміг комп'ютер!");
             } else {
                 alert("Переміг гравець!");

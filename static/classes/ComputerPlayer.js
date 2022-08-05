@@ -9,7 +9,7 @@ class ComputerPlayer extends Player {
             this.doComputerStep(allCells);
         } else {
             let idHTML = `cell${id}`;
-            document.getElementById(idHTML).innerHTML = `<img src="./${gameMark.circle}.png" alt="${gameMark.circle}">`;
+            document.getElementById(idHTML).innerHTML = `<img src="./images/${gameMark.circle}.png" alt="${gameMark.circle}">`;
             allCells[id].setCellOccupied();
             allCells[id].setCellOccupiedByElement(gameMark.circle);
             isGameOver();
